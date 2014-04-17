@@ -84,6 +84,8 @@ typedef enum {
     MCA_BASE_VAR_TYPE_SIZE_T,
     /** The variable is of type string. */
     MCA_BASE_VAR_TYPE_STRING,
+    /** The variable is of type string and contains version. */
+    MCA_BASE_VAR_TYPE_VERSION_STRING,
     /** The variable is of type bool */
     MCA_BASE_VAR_TYPE_BOOL,
     /** The variable is of type double */
@@ -92,6 +94,7 @@ typedef enum {
     MCA_BASE_VAR_TYPE_MAX
 } mca_base_var_type_t;
 
+extern const char *var_type_names[];
 
 /**
  * Source of an MCA variable's value
@@ -704,6 +707,9 @@ typedef enum {
  * and the array must be freed by the caller.
  */
 OPAL_DECLSPEC int mca_base_var_dump(int vari, char ***out, mca_base_var_dump_type_t output_type);
+
+#define MCA_COMPILETIME_VER "print_compiletime_version"
+#define MCA_RUNTIME_VER "print_runtime_version"
 
 END_C_DECLS
 
