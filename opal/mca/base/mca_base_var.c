@@ -129,6 +129,7 @@ static int mca_base_var_cache_files (bool rel_path_search);
 static int var_set_initial (mca_base_var_t *var);
 static int var_get (int vari, mca_base_var_t **var_out, bool original);
 static int var_value_string (mca_base_var_t *var, char **value_string);
+static int mca_base_var_process_env_list(void);
 
 /*
  * classes
@@ -261,6 +262,9 @@ int mca_base_var_init(void)
         mca_base_var_initialized = true; 
 
         mca_base_var_cache_files(false);
+
+        /* set nesessary env variables for external usage */
+        mca_base_var_process_env_list();
     }
 
     return OPAL_SUCCESS;
