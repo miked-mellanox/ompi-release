@@ -74,11 +74,12 @@ static opal_hash_table_t mca_base_var_index_hash;
 
 const char *var_type_names[] = {
     "int",
-    "unsigned",
-    "unsigned long",
-    "unsigned long long",
+    "unsigned_int",
+    "unsigned_long",
+    "unsigned_long_long",
     "size_t",
     "string",
+    "version_string",
     "bool",
     "double"
 };
@@ -89,6 +90,7 @@ const size_t var_type_sizes[] = {
     sizeof (unsigned long),
     sizeof (unsigned long long),
     sizeof (size_t),
+    sizeof (char),
     sizeof (char),
     sizeof (bool),
     sizeof (double)
@@ -661,6 +663,7 @@ static int var_set_from_string (mca_base_var_t *var, char *src)
         dst->lfval = strtod (src, NULL);
         break;
     case MCA_BASE_VAR_TYPE_STRING:
+    case MCA_BASE_VAR_TYPE_VERSION_STRING:
         var_set_string (var, src);
         break;
     case MCA_BASE_VAR_TYPE_MAX:
@@ -701,7 +704,7 @@ int mca_base_var_set_value (int vari, const void *value, size_t size, mca_base_v
         }
     }
 
-    if (MCA_BASE_VAR_TYPE_STRING != var->mbv_type) {
+    if (MCA_BASE_VAR_TYPE_STRING != var->mbv_type && MCA_BASE_VAR_TYPE_VERSION_STRING != var->mbv_type) {
         memmove (var->mbv_storage, value, var_type_sizes[var->mbv_type]);
     } else {
         var_set_string (var, (char *) value);
@@ -743,7 +746,7 @@ int mca_base_var_deregister(int vari)
     }
 
     /* Release the current value if it is a string. */
-    if (MCA_BASE_VAR_TYPE_STRING == var->mbv_type &&
+    if ((MCA_BASE_VAR_TYPE_STRING == var->mbv_type || MCA_BASE_VAR_TYPE_VERSION_STRING == var->mbv_type) &&
         var->mbv_storage->stringval) {
         free (var->mbv_storage->stringval);
         var->mbv_storage->stringval = NULL;
@@ -943,7 +946,7 @@ int mca_base_var_build_env(char ***env, int *num_env, bool internal)
             continue;
         }
 
-        if (MCA_BASE_VAR_TYPE_STRING == var->mbv_type &&
+        if ((MCA_BASE_VAR_TYPE_STRING == var->mbv_type || MCA_BASE_VAR_TYPE_VERSION_STRING == var->mbv_type) &&
             NULL == var->mbv_storage->stringval) {
             continue;
         }
@@ -1371,7 +1374,7 @@ static int register_variable (const char *project_name, const char *framework_na
         var->mbv_storage = storage;
 
         /* make a copy of the default string value */
-        if (MCA_BASE_VAR_TYPE_STRING == type && NULL != ((char **)storage)[0]) {
+        if ((MCA_BASE_VAR_TYPE_STRING == type || MCA_BASE_VAR_TYPE_VERSION_STRING == type) && NULL != ((char **)storage)[0]) {
             ((char **)storage)[0] = strdup (((char **)storage)[0]);
         }
     }
@@ -1730,6 +1733,16 @@ static void var_destructor(mca_base_var_t *var)
     if (NULL != var->mbv_description) {
         free(var->mbv_description);
     }
+    if ((MCA_BASE_VAR_TYPE_STRING == var->mbv_type || MCA_BASE_VAR_TYPE_VERSION_STRING == var->mbv_type) &&
+        NULL != var->mbv_storage &&
+        NULL != var->mbv_storage->stringval) {
+        free (var->mbv_storage->stringval);
+    }
+
+    /* don't release the boolean enumerator */
+    if (MCA_BASE_VAR_TYPE_BOOL != var->mbv_type && NULL != var->mbv_enumerator) {
+        OBJ_RELEASE(var->mbv_enumerator);
+    }
 
     /* Destroy the synonym array */
     OBJ_DESTRUCT(&var->mbv_synonyms);
@@ -1811,6 +1824,7 @@ static int var_value_string (mca_base_var_t *var, char **value_string)
             ret = asprintf (value_string, "%" PRIsize_t, value->sizetval);
             break;
         case MCA_BASE_VAR_TYPE_STRING:
+        case MCA_BASE_VAR_TYPE_VERSION_STRING:
             ret = asprintf (value_string, "%s", 
                             value->stringval ? value->stringval : "");
             break;
@@ -2105,3 +2119,4 @@ int mca_base_var_dump(int vari, char ***out, mca_base_var_dump_type_t output_typ
 
     return OPAL_SUCCESS;
 }
+
