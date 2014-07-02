@@ -262,6 +262,53 @@ int mca_base_var_init(void)
     return OPAL_SUCCESS;
 }
 
+static int mca_base_var_process_env_list(void)
+{
+    int i, ret;
+    char** tokens;
+    char* ptr;
+    char* param, *value;
+    ret = mca_base_var_register ("opal", "mca", "base", "env_list",
+                                 "Set SHELL env variables",
+                                 MCA_BASE_VAR_TYPE_STRING, NULL, 0, 0, OPAL_INFO_LVL_3,
+                                 MCA_BASE_VAR_SCOPE_READONLY, &mca_base_env_list);
+    if ((0 > ret) || (NULL == mca_base_env_list)) {
+        return OPAL_SUCCESS;
+    }
+    tokens = opal_argv_split(mca_base_env_list, ';');
+    if (NULL != tokens) {
+        for (i = 0; NULL != tokens[i]; i++) {
+            if (NULL == (ptr = strchr(tokens[i], '='))) {
+                value = getenv(tokens[i]);
+                if (NULL != value) {
+                    if (NULL != strchr(value, '=')) {
+                        param = strdup(value);
+                        value = strchr(param, '=');
+                        *value = '\0';
+                        value++;
+                        opal_setenv(param, value, true, &environ);
+                        free(param);
+                    } else {
+                        opal_setenv(tokens[i], value, true, &environ);
+                    }
+                } else {
+                    opal_show_help("help-mca-var.txt", "incorrect-env-list-param",
+                            true, tokens[i], mca_base_env_list);
+                }
+            } else {
+                param = strdup(tokens[i]);
+                value = strchr(param, '=');
+                *value = '\0';
+                value++;
+                opal_setenv(param, value, true, &environ);
+                free(param);
+            }
+        }
+        opal_argv_free(tokens);
+    }
+    return OPAL_SUCCESS;
+}
+
 static int mca_base_var_cache_files(bool rel_path_search)
 {
     char *tmp;

@@ -121,3 +121,11 @@ starting your job.
 
   Value:      %s
   Source:     %s
+#
+[incorrect-env-list-param]
+WARNING: The format of "mca_base_env_list" parameter is a semicolon separated
+list of VAR=VAL or VAR instances: VAR1=VAL1;VAR2;VAR3=VAL3;... In case if value
+was not specified for a variable, it will be taken from the current environment.
+The following environment variable was not found in the environment:
+  Variable:             %s
+  MCA variable value:   %s
