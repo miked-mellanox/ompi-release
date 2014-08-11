@@ -64,8 +64,8 @@ static int spml_ikrit_get_ep_address(spml_ikrit_mxm_ep_conn_info_t *ep_info,
                          (struct sockaddr *) &ep_info->addr.ptl_addr[ptlid],
                          &addrlen);
     if (MXM_OK != err) {
-        orte_show_help("help-spml-ikrit.txt",
-                       "unable to extract endpoint address",
+        orte_show_help("help-oshmem-spml-ikrit.txt",
+                       "unable to get endpoint address",
                        true,
                        mxm_error_string(err));
         return OSHMEM_ERROR;
