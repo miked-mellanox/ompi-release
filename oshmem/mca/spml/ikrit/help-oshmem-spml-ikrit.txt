@@ -37,7 +37,7 @@ Initialization of MXM library failed.
 
 [mxm tls]
 ERROR: MXM shared memory transport can not be used
-bacause it is not fully compliant with OSHMEM spec
+because it is not fully compliant with OSHMEM spec
 
 MXM transport setting: %s
 
