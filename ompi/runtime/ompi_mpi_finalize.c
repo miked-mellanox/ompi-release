@@ -95,8 +95,15 @@ int ompi_mpi_finalize(void)
     opal_list_item_t *item;
     struct timeval ompistart, ompistop;
     ompi_rte_collective_t *coll;
+    ompi_communicator_t *comm_world;
     ompi_proc_t** procs;
     size_t nprocs;
+
+    /* Extra barrier to flush MPI */
+    comm_world = &ompi_mpi_comm_world.comm;
+    if (ompi_comm_size(comm_world) > 1) {
+        comm_world->c_coll.coll_barrier(comm_world, comm_world->c_coll.coll_barrier_module);
+    }
 
     /* Be a bit social if an erroneous program calls MPI_FINALIZE in
        two different threads, otherwise we may deadlock in
