@@ -19,6 +19,7 @@
 
 #include "opal/constants.h"
 #include "opal/util/sys_limits.h"
+#include "opal/util/output.h"
 
 #include "oshmem/mca/sshmem/sshmem.h"
 #include "oshmem/mca/sshmem/base/base.h"
@@ -328,6 +329,13 @@ verbs_register(void)
 static int
 verbs_open(void)
 {
+    int ret;
+
+    ret = ibv_fork_init();
+    if (ret != 0) {
+        opal_output_verbose(0, oshmem_sshmem_base_framework.framework_output, "fork() safety requested but ibv_fork_init() failed: %m");
+    }
+
     return OSHMEM_SUCCESS;
 }
 
