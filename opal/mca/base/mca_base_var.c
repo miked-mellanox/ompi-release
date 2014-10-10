@@ -1731,7 +1731,7 @@ static void var_constructor(mca_base_var_t *var)
  */
 static void var_destructor(mca_base_var_t *var)
 {
-    if (MCA_BASE_VAR_TYPE_STRING == var->mbv_type &&
+    if ((MCA_BASE_VAR_TYPE_STRING == var->mbv_type || MCA_BASE_VAR_TYPE_VERSION_STRING == var->mbv_type) &&
         NULL != var->mbv_storage &&
         NULL != var->mbv_storage->stringval) {
         free (var->mbv_storage->stringval);
@@ -1753,16 +1753,6 @@ static void var_destructor(mca_base_var_t *var)
     }
     if (NULL != var->mbv_description) {
         free(var->mbv_description);
-    }
-    if ((MCA_BASE_VAR_TYPE_STRING == var->mbv_type || MCA_BASE_VAR_TYPE_VERSION_STRING == var->mbv_type) &&
-        NULL != var->mbv_storage &&
-        NULL != var->mbv_storage->stringval) {
-        free (var->mbv_storage->stringval);
-    }
-
-    /* don't release the boolean enumerator */
-    if (MCA_BASE_VAR_TYPE_BOOL != var->mbv_type && NULL != var->mbv_enumerator) {
-        OBJ_RELEASE(var->mbv_enumerator);
     }
 
     /* Destroy the synonym array */
