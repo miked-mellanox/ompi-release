@@ -10,7 +10,8 @@
 #
 # $HEADER$
 
-nodist_ompidata_DATA =  \
+oshmemdatadir=$(pkgdatadir)
+nodist_oshmemdata_DATA =  \
 	shmemcc-wrapper-data.txt \
 	shmemfort-wrapper-data.txt
 
