@@ -63,6 +63,8 @@ void shmem_init(void)
     }
 
     OPAL_CR_INIT_LIBRARY();
+#if HAVE_ON_EXIT
     on_exit(shmem_onexit, NULL);
+#endif
 }
 
