@@ -39,7 +39,7 @@ int mca_memheap_base_reg(mca_memheap_map_t *memheap_map)
                         s->seg_id);
         ret = _reg_segment(s, &memheap_map->num_transports);
         if (OSHMEM_SUCCESS != ret) {
-            (void *)mca_memheap_base_dereg(memheap_map);
+            mca_memheap_base_dereg(memheap_map);
             return ret;
         }
     }
@@ -49,12 +49,10 @@ int mca_memheap_base_reg(mca_memheap_map_t *memheap_map)
 
 int mca_memheap_base_dereg(mca_memheap_map_t *memheap_map)
 {
-    int i, ret;
-    ret = OSHMEM_SUCCESS;
+    int i;
 
     for (i = 0; i < memheap_map->n_segments; i++) {
         map_segment_t *s = &memheap_map->mem_segs[i];
-        int _ret;
 
         if (!MAP_SEGMENT_IS_VALID(s))
             continue;
@@ -65,13 +63,10 @@ int mca_memheap_base_dereg(mca_memheap_map_t *memheap_map)
                         s->seg_base_addr,
                         s->end,
                         (long long)((uintptr_t)s->end - (uintptr_t)s->seg_base_addr));
-        _ret = _dereg_segment(s);
-        if (OSHMEM_SUCCESS != _ret) {
-            ret = _ret;
-        }
+        (void)_dereg_segment(s);
     }
 
-    return ret;
+    return OSHMEM_SUCCESS;
 }
 
 static int _dereg_segment(map_segment_t *s)
