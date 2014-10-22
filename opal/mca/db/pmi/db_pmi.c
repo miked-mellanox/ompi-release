@@ -29,9 +29,11 @@
 #include "opal/util/error.h"
 #include "opal/util/output.h"
 #include "opal/util/show_help.h"
+#include "opal/util/opal_environ.h"
 
 #include "opal/mca/common/pmi/common_pmi.h"
 #include "opal/mca/db/base/base.h"
+#include "opal/mca/base/mca_base_var.h"
 #include "db_pmi.h"
 
 
@@ -582,6 +584,8 @@ static int setup_pmi(void)
     }
 #endif
 
+    /* setup any local envars we were asked to do */
+    mca_base_var_process_env_list(&environ);
     return OPAL_SUCCESS;
 }
 
