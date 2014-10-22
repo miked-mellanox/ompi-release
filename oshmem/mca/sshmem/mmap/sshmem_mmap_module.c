@@ -45,12 +45,9 @@
 #include "oshmem/proc/proc.h"
 #include "oshmem/mca/sshmem/sshmem.h"
 #include "oshmem/mca/sshmem/base/base.h"
+#include "oshmem/util/oshmem_util.h"
 
 #include "sshmem_mmap.h"
-
-#if !defined(MAP_ANONYMOUS) && defined(MAP_ANON)
-#    define MAP_ANONYMOUS MAP_ANON
-#endif /* MAP_ANONYMOUS and MAP_ANON */
 
 #if !defined(MAP_FAILED)
 #    define MAP_FAILED ((char*)-1)
@@ -125,6 +122,7 @@ shmem_ds_reset(map_segment_t *ds_buf)
     ds_buf->end = 0;
     ds_buf->seg_size = 0;
     ds_buf->type = MAP_SEGMENT_UNKNOWN;
+    unlink(ds_buf->seg_name);
     memset(ds_buf->seg_name, '\0', sizeof(ds_buf->seg_name));
 }
 
@@ -167,8 +165,8 @@ ds_copy(const map_segment_t *from,
 
     return OSHMEM_SUCCESS;
 }
-
 /* ////////////////////////////////////////////////////////////////////////// */
+
 static int
 segment_create(map_segment_t *ds_buf,
                const char *file_name,
@@ -182,22 +180,52 @@ segment_create(map_segment_t *ds_buf,
     /* init the contents of map_segment_t */
     shmem_ds_reset(ds_buf);
 
-    addr = mmap((void *)mca_sshmem_base_start_address,
-                size,
-                PROT_READ | PROT_WRITE,
-                MAP_PRIVATE |
-#if defined(MAP_ANONYMOUS)
-                MAP_ANONYMOUS |
-#endif
-                MAP_FIXED,
-                -1,
-                0);
+    if (mca_sshmem_mmap_component.is_anonymous) {
+        addr = mmap((void *)(mca_sshmem_mmap_component.is_start_addr_fixed ? mca_sshmem_base_start_address : NULL),
+                    size,
+                    PROT_READ | PROT_WRITE,
+                    MAP_PRIVATE | 
+                    MAP_ANONYMOUS |
+                    (mca_sshmem_mmap_component.is_start_addr_fixed ? MAP_FIXED : 0),
+                    -1,
+                    0);
+    }
+    else {
+        memcpy(ds_buf->seg_name, file_name, OPAL_PATH_MAX * sizeof(char));
 
+        int fd;
+        if (-1 == (fd = open(ds_buf->seg_name, O_CREAT | O_RDWR, 0600))) {
+            opal_show_help("help-oshmem-sshmem-mmap.txt",
+                       "mmap:file open failure",
+                       true, ds_buf->seg_name, strerror(errno));
+            return OSHMEM_ERROR;
+        }
+        if (0 != ftruncate(fd, size)) {
+            opal_show_help("help-oshmem-sshmem-mmap.txt",
+                       "mmap:file truncate failure",
+                       true, ds_buf->seg_name, (unsigned long long) size, strerror(errno));
+            return OSHMEM_ERROR;
+        }
+        addr = mmap((void *)(mca_sshmem_mmap_component.is_start_addr_fixed ? mca_sshmem_base_start_address : NULL),
+                    size,
+                    PROT_READ | PROT_WRITE,
+                    MAP_SHARED |
+                    (mca_sshmem_mmap_component.is_start_addr_fixed ? MAP_FIXED : 0),
+                    fd,
+                    0);
+
+        if (0 != close(fd)) {
+            OPAL_OUTPUT(
+                (oshmem_sshmem_base_framework.framework_output,
+                "file close failed: %s", strerror(errno))
+            );
+        }
+    }
     if (MAP_FAILED == addr) {
         opal_show_help("help-oshmem-sshmem.txt",
                 "create segment failure",
-                "mmap",
                 true,
+                "mmap",
                 orte_process_info.nodename, (unsigned long long) size,
                 strerror(errno), errno);
         opal_show_help("help-oshmem-sshmem-mmap.txt",
@@ -207,7 +235,19 @@ segment_create(map_segment_t *ds_buf,
     }
 
     ds_buf->type = MAP_SEGMENT_ALLOC_MMAP;
-    ds_buf->seg_id = MAP_SEGMENT_SHM_INVALID; 
+    if (mca_sshmem_mmap_component.is_anonymous) {
+        /*
+         * Segment attach is not called for anonymous mmap
+         */
+        ds_buf->seg_id = MAP_SEGMENT_SHM_INVALID;
+    } else {
+        /*
+         * Warning: implied that input file name has a fixed format
+         * and pe which is stored as segment identifier is used in file name
+         * generation during segment attachment
+         */
+        ds_buf->seg_id = oshmem_my_proc_id();
+    }
     ds_buf->seg_base_addr = addr;
     ds_buf->seg_size = size;
     ds_buf->end = (void*)((uintptr_t)ds_buf->seg_base_addr + ds_buf->seg_size);
@@ -241,22 +281,60 @@ segment_attach(map_segment_t *ds_buf, sshmem_mkey_t *mkey)
         return (mkey->va_base);
     }
 
-    addr = mmap((void *)mca_sshmem_base_start_address,
-                ds_buf->seg_size,
-                PROT_READ | PROT_WRITE,
-                MAP_SHARED |
-#if defined(MAP_ANONYMOUS)
-                MAP_ANONYMOUS |
-#endif
-                MAP_FIXED,
-                -1,
-                0);
+    if (mca_sshmem_mmap_component.is_anonymous) {
+        /*
+         * Note: segment attach for anonymous mmap
+         * is not called due to invalid segment id
+         */
+        addr = mmap((void *)mca_sshmem_base_start_address,
+                    ds_buf->seg_size,
+                    PROT_READ | PROT_WRITE,
+                    MAP_SHARED |
+                    MAP_ANONYMOUS |
+                    MAP_FIXED,
+                    -1,
+                    0);
+    } else {
+        char *file_name = NULL;
+        if (NULL == (file_name = oshmem_get_unique_file_name(mkey->u.key))) {
+            OPAL_OUTPUT(
+                (oshmem_sshmem_base_framework.framework_output,
+                "Can't get file name")
+            );
+            return NULL;
+        }
+
+        int fd;
+        if (-1 == (fd = open(file_name, O_CREAT | O_RDWR, 0600))) {
+            OPAL_OUTPUT(
+                (oshmem_sshmem_base_framework.framework_output,
+                 "file open failed: %s", strerror(errno))
+            );
+            free(file_name);
+            return NULL;
+        }
+        free(file_name);
+
+        addr = mmap((void *)NULL,
+                    ds_buf->seg_size,
+                    PROT_READ | PROT_WRITE,
+                    MAP_SHARED,
+                    fd,
+                    0);
+
+        if (0 != close(fd)) {
+            OPAL_OUTPUT(
+                (oshmem_sshmem_base_framework.framework_output,
+                "file close failed: %s", strerror(errno))
+            );
+        }
+    }
 
     if (MAP_FAILED == addr) {
-        OPAL_OUTPUT_VERBOSE(
-           (5, oshmem_sshmem_base_framework.framework_output,
-           "Failed to mmap() %llu bytes (errno=%d)",
-                      (unsigned long long)ds_buf->seg_size, errno)
+        OPAL_OUTPUT(
+            (oshmem_sshmem_base_framework.framework_output,
+             "Failed to mmap() %llu bytes (errno=%d)",
+             (unsigned long long)ds_buf->seg_size, errno)
             );
         return NULL;
     }
@@ -271,7 +349,7 @@ segment_attach(map_segment_t *ds_buf, sshmem_mkey_t *mkey)
             mca_sshmem_mmap_component.super.base_version.mca_component_name,
             ds_buf->seg_id, ds_buf->seg_base_addr, (unsigned long)ds_buf->seg_size, ds_buf->seg_name,
             mkey->va_base, mkey->len, (unsigned long long)mkey->u.key)
-    );
+        );
 
     /* update returned base pointer with an offset that hides our stuff */
     return (mkey->va_base);

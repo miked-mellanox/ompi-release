@@ -1162,6 +1162,9 @@ int mca_coll_fca_get_fca_lib(struct ompi_communicator_t *comm)
     spec->rank_id = ompi_comm_rank(MPI_COMM_WORLD);
     spec->progress.func = mca_coll_fca_progress_cb;
     spec->progress.arg = NULL;
+#ifdef FCA_SA_MKEY
+    spec->config.device.sa_mkey = FCA_SA_MKEY;
+#endif
     ret = fca_init(spec, &mca_coll_fca_component.fca_context);
     if (ret < 0) {
         FCA_ERROR("Failed to initialize FCA: %s", fca_strerror(ret));
@@ -1407,6 +1410,24 @@ static int fca_register(void)
                                            OPAL_INFO_LVL_9,
                                            MCA_BASE_VAR_SCOPE_READONLY,
                                            &mca_coll_fca_component.fca_number_of_primes); 
+    mca_coll_fca_component.compiletime_version = FCA_VERNO_STRING;
+    (void) mca_base_component_var_register(c,
+            MCA_COMPILETIME_VER,
+            "Version of the libfca library ompi compiled with",
+            MCA_BASE_VAR_TYPE_VERSION_STRING,
+            NULL, 0, 0,
+            OPAL_INFO_LVL_3,
+            MCA_BASE_VAR_SCOPE_READONLY,
+            &mca_coll_fca_component.compiletime_version);
+    mca_coll_fca_component.runtime_version = fca_get_version_string();
+    (void) mca_base_component_var_register(c,
+            MCA_RUNTIME_VER,
+            "Version of the libfca library ompi run with",
+            MCA_BASE_VAR_TYPE_VERSION_STRING,
+            NULL, 0, 0,
+            OPAL_INFO_LVL_3,
+            MCA_BASE_VAR_SCOPE_READONLY,
+            &mca_coll_fca_component.runtime_version);
 
     mca_coll_fca_component.fca_total_work_time = 0;
     mca_coll_fca_component.fca_work_time_parallel = 0;
