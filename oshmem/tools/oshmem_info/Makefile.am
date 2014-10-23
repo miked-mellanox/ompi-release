@@ -52,7 +52,7 @@ if PROJECT_OSHMEM
 bin_PROGRAMS += oshmem_info
 nodist_man_MANS += $(man_pages)
 dist_ompidata_DATA = \
-    help-oshmem-info.txt
+     help-oshmem-info.txt
 endif
 
 
