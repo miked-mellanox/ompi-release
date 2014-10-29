@@ -261,11 +261,11 @@ segment_create(map_segment_t *ds_buf,
 
         struct ibv_exp_reg_mr_in in = {device->ib_pd, addr, size, access_flag|exp_access_flag, 0};
 
-#ifdef MPAGE_HAVE_IBV_EXP_REG_MR_CREATE_FLAGS
+#if MPAGE_HAVE_IBV_EXP_REG_MR_CREATE_FLAGS
         if (0 == mca_sshmem_verbs_component.has_shared_mr) {
             in.addr = (void *)mca_sshmem_base_start_address;
             in.comp_mask    = IBV_EXP_REG_MR_CREATE_FLAGS;
-            in.create_flags = IBV_EXP_REG_MR_CREATE_CONTIG; 
+            in.create_flags = IBV_EXP_REG_MR_CREATE_CONTIG;
             in.exp_access   = access_flag;
         }
 #endif
