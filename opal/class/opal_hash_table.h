@@ -13,6 +13,7 @@
  *                         All rights reserved.
  * Copyright (c) 2014-2015 Mellanox Technologies, Inc.
  *                         All rights reserved.
+ * Copyright (c) 2014      Intel, Inc. All rights reserved.
  * $COPYRIGHT$
  * 
  * Additional copyrights may follow
@@ -53,11 +54,6 @@ struct opal_hash_table_t
     int                  ht_density_numer, ht_density_denom; /**< max allowed density of table */
     int                  ht_growth_numer, ht_growth_denom;   /**< growth factor when grown  */
     const struct opal_hash_type_methods_t * ht_type_methods;
-    // FIXME
-    // Begin KLUDGE!!  So ompi/debuggers/ompi_common_dll.c doesn't complain
-    size_t              ht_table_size;  /**< size of table */
-    size_t              ht_mask;
-    // End KLUDGE
 };
 typedef struct opal_hash_table_t opal_hash_table_t;
 
@@ -76,6 +72,10 @@ typedef struct opal_hash_table_t opal_hash_table_t;
 
 OPAL_DECLSPEC int opal_hash_table_init(opal_hash_table_t* ht, size_t table_size);
 
+/* this could be the new init if people wanted a more general API */
+OPAL_DECLSPEC int opal_hash_table_init2(opal_hash_table_t* ht, size_t estimated_max_size,
+                                        int density_numer, int density_denom,
+                                        int growth_numer, int growth_denom);
 
 /**
  *  Returns the number of elements currently stored in the table.
