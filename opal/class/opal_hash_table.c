@@ -13,8 +13,6 @@
  *                         All rights reserved.
  * Copyright (c) 2014-2015 Mellanox Technologies, Inc.
  *                         All rights reserved.
- * Copyright (c) 2014      Research Organization for Information Science
- *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  * 
  * Additional copyrights may follow
@@ -34,7 +32,7 @@
 /*
  * opal_hash_table_t
  * 
- * Sketch: [Constributed by David Linden of Hewlett-Packard]
+ * Sketch: [Contributed by David Linden of Hewlett-Packard]
  * 
  * This has been found to be good for search and insert and
  * (seldom-)remove, all with probablistic O(1) time.  Having a good

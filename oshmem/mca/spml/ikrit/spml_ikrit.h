@@ -96,7 +96,7 @@ struct mca_spml_ikrit_t {
                        it is possible to speedup mkey exchange 
                        and not to register memheap */
     int hw_rdma_channel;  /* true if we provide separate channel that
-                       has true one sided capability */ 
+                       has true one sided capability */
     int np;
 #if MXM_API >= MXM_VERSION(2,0)
     int unsync_conn_max;

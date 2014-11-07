@@ -23,6 +23,7 @@
 #include "oshmem/mca/spml/ikrit/spml_ikrit.h"
 
 #include "orte/util/show_help.h"
+#include "opal/util/opal_environ.h"
 
 static int mca_spml_ikrit_component_register(void);
 static int mca_spml_ikrit_component_open(void);
@@ -105,11 +106,11 @@ static inline int set_mxm_tls()
 
     tls = getenv("MXM_TLS");
     if (NULL == tls) {
-        setenv("MXM_OSHMEM_TLS", mca_spml_ikrit.mxm_tls, 1);
+        opal_setenv("MXM_OSHMEM_TLS", mca_spml_ikrit.mxm_tls, 1, &environ);
         return OSHMEM_SUCCESS;
     }
     if (OSHMEM_SUCCESS == check_mxm_tls("MXM_TLS")) {
-        setenv("MXM_OSHMEM_TLS", tls, 1);
+        opal_setenv("MXM_OSHMEM_TLS", tls, 1, &environ);
         return OSHMEM_SUCCESS;
     }
     return OSHMEM_ERROR;
@@ -117,13 +118,15 @@ static inline int set_mxm_tls()
 
 static inline int check_mxm_hw_tls(char *v, char *tls)
 {
-    if ((0 == strcmp(tls, "rc") || 0 == strcmp(tls, "dc"))) 
+    if ((0 == strcmp(tls, "rc") || 0 == strcmp(tls, "dc"))) {
         return OSHMEM_SUCCESS;
+    }
 
     if (strstr(tls, "ud") &&
             (NULL == strstr(tls, "rc") && NULL == strstr(tls, "dc") &&
-             NULL == strstr(tls, "shm"))) 
+             NULL == strstr(tls, "shm"))) {
         return OSHMEM_SUCCESS;
+    }
 
     orte_show_help("help-oshmem-spml-ikrit.txt", "mxm tls", true,
                     v, tls);
@@ -135,8 +138,8 @@ static inline int set_mxm_hw_rdma_tls()
     if (!mca_spml_ikrit.hw_rdma_channel) {
         return check_mxm_hw_tls("MXM_OSHMEM_TLS", getenv("MXM_OSHMEM_TLS"));
     }
-    setenv("MXM_OSHMEM_HW_RDMA_RC_QP_LIMIT", "-1", 0);
-    setenv("MXM_OSHMEM_HW_RDMA_TLS", "rc", 0);
+    opal_setenv("MXM_OSHMEM_HW_RDMA_RC_QP_LIMIT", "-1", 0, &environ);
+    opal_setenv("MXM_OSHMEM_HW_RDMA_TLS", "rc", 0, &environ);
 
     return check_mxm_hw_tls("MXM_OSHMEM_HW_RDMA_TLS", 
             getenv("MXM_OSHMEM_HW_RDMA_TLS"));
@@ -196,14 +199,15 @@ static int mca_spml_ikrit_component_register(void)
     mca_spml_ikrit_param_register_int("priority", 20,
                                       "[integer] ikrit priority",
                                       &mca_spml_ikrit.priority);
-    mca_spml_ikrit_param_register_int("hw_rdma_channel", 1,
+    mca_spml_ikrit_param_register_int("hw_rdma_channel", 0,
                                        "create separate reliable connection channel",
                                        &mca_spml_ikrit.hw_rdma_channel);
 
-    if (!mca_spml_ikrit.hw_rdma_channel) 
+    if (!mca_spml_ikrit.hw_rdma_channel) {
         v = "ud,self";
-    else
+    } else {
         v = "rc,ud,self";
+    }
     mca_spml_ikrit_param_register_string("mxm_tls",
                                          v,
                                          "[string] TL channels for MXM",
@@ -274,7 +278,7 @@ static int mca_spml_ikrit_component_open(void)
     }
     if ((mca_spml_ikrit.hw_rdma_channel && MXM_OK != mxm_config_read_opts(&mca_spml_ikrit.mxm_ctx_opts,
                 &mca_spml_ikrit.mxm_ep_hw_rdma_opts,
-                "OSHMEM_HW_RDMA", NULL, 0)) || 
+                "OSHMEM_HW_RDMA", NULL, 0)) ||
             MXM_OK != mxm_config_read_opts(&mca_spml_ikrit.mxm_ctx_opts,
                 &mca_spml_ikrit.mxm_ep_opts,
                 "OSHMEM", NULL, 0))
@@ -327,8 +331,9 @@ static int mca_spml_ikrit_component_close(void)
 #else
         mxm_config_free_ep_opts(mca_spml_ikrit.mxm_ep_opts);
         mxm_config_free_context_opts(mca_spml_ikrit.mxm_ctx_opts);
-        if (mca_spml_ikrit.hw_rdma_channel)
+        if (mca_spml_ikrit.hw_rdma_channel) {
             mxm_config_free_ep_opts(mca_spml_ikrit.mxm_ep_hw_rdma_opts);
+        }
 #endif
     }
     mca_spml_ikrit.mxm_context = NULL;
