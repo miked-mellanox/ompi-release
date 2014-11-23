@@ -264,6 +264,8 @@ static int mca_spml_ikrit_component_open(void)
                     (cur_ver >> MXM_MINOR_BIT) & 0xff);
     }
 
+    mca_spml_ikrit.mxm_mq = NULL;
+    mca_spml_ikrit.mxm_context = NULL;
     mca_spml_ikrit.ud_only = 0;
 #if MXM_API < MXM_VERSION(2,1)
     mca_spml_ikrit.hw_rdma_channel = 0;
@@ -355,8 +357,6 @@ static int spml_ikrit_mxm_init(void)
     mca_spml_ikrit.mxm_ep_opts->num_local_procs = 0;
     mca_spml_ikrit.mxm_ep_opts->rdma.drain_cq = 1;
 #endif
-    mca_spml_ikrit.mxm_mq = NULL;
-    mca_spml_ikrit.mxm_context = NULL;
 
     /* Open MXM endpoint */
     err = mxm_ep_create(mca_spml_ikrit.mxm_context,
