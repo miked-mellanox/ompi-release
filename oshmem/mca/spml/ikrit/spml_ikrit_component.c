@@ -323,6 +323,9 @@ static int mca_spml_ikrit_component_open(void)
 
 static int mca_spml_ikrit_component_close(void)
 {
+    if (mca_spml_ikrit.mxm_mq) {
+        mxm_mq_destroy(mca_spml_ikrit.mxm_mq);
+    }
     if (mca_spml_ikrit.mxm_context) {
         mxm_cleanup(mca_spml_ikrit.mxm_context);
 #if MXM_API < MXM_VERSION(2,0)
@@ -336,6 +339,7 @@ static int mca_spml_ikrit_component_close(void)
         }
 #endif
     }
+    mca_spml_ikrit.mxm_mq = NULL;
     mca_spml_ikrit.mxm_context = NULL;
     return OSHMEM_SUCCESS;
 }
@@ -351,6 +355,8 @@ static int spml_ikrit_mxm_init(void)
     mca_spml_ikrit.mxm_ep_opts->num_local_procs = 0;
     mca_spml_ikrit.mxm_ep_opts->rdma.drain_cq = 1;
 #endif
+    mca_spml_ikrit.mxm_mq = NULL;
+    mca_spml_ikrit.mxm_context = NULL;
 
     /* Open MXM endpoint */
     err = mxm_ep_create(mca_spml_ikrit.mxm_context,
