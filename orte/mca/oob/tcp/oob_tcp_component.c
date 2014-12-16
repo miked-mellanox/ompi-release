@@ -16,6 +16,8 @@
  * Copyright (c) 2011      Oak Ridge National Labs.  All rights reserved.
  * Copyright (c) 2013-2014 Intel, Inc.  All rights reserved.
  * Copyright (c) 2014      NVIDIA Corporation.  All rights reserved.
+ * Copyright (c) 2014      Research Organization for Information Science
+ *                         and Technology (RIST). All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -204,7 +206,7 @@ static int tcp_component_register(void)
 {
     mca_base_component_t *component = &mca_oob_tcp_component.super.oob_base;
     int var_id;
-
+    
     /* register oob module parameters */
     mca_oob_tcp_component.peer_limit = -1;
     (void)mca_base_component_var_register(component, "peer_limit",
@@ -416,7 +418,8 @@ static bool component_available(void)
     char name[32];
     struct sockaddr_storage my_ss;
     int kindex;
-
+    bool loopback = false;
+    
     opal_output_verbose(5, orte_oob_base_framework.framework_output,
                         "oob:tcp: component_available called");
 
@@ -439,6 +442,11 @@ static bool component_available(void)
 
     /* look at all available interfaces */ 
     for (i = opal_ifbegin(); i >= 0; i = opal_ifnext(i)) {
+        /* if this interface has loopback support, record that fact */
+        if (opal_ifisloopback(i)) {
+            loopback = true;
+        }
+        
         if (OPAL_SUCCESS != opal_ifindextoaddr(i, (struct sockaddr*) &my_ss,
                                                sizeof (my_ss))) {
             opal_output (0, "oob_tcp: problems getting address for index %i (kernel index %i)\n",
@@ -506,7 +514,6 @@ static bool component_available(void)
                 continue;
             }
         }
-
         /* Refs ticket #3019
          * it would probably be worthwhile to print out a warning if OMPI detects multiple
          * IP interfaces that are "up" on the same subnet (because that's a Bad Idea). Note
@@ -540,7 +547,15 @@ static bool component_available(void)
         }
     }
 
-    /* cleanup */
+    if (ORTE_PROC_IS_DAEMON && !loopback) {
+        /* Solaris doesn't care, but warn if we are
+         * on any other type of system */
+#if !OPAL_HAVE_SOLARIS
+        orte_show_help("help-oob-tcp.txt", "no-loopback-found", true);
+#endif
+    }
+
+/* cleanup */
     if (NULL != interfaces) {
         opal_argv_free(interfaces);
     }
