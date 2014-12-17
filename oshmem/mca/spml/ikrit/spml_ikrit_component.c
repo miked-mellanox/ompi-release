@@ -97,7 +97,7 @@ static inline int set_mxm_tls()
      * Pool size is controlled by MXM_DC_QP_LIMIT 
      * variable
      */
-    setenv("MXM_OSHMEM_DC_RNDV_QP_LIMIT", "0", 0);
+    opal_setenv("MXM_OSHMEM_DC_RNDV_QP_LIMIT", "0", 0, &environ);
 
     tls = getenv("MXM_OSHMEM_TLS");
     if (NULL != tls) {
