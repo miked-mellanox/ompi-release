@@ -85,6 +85,7 @@ Valid arguments:
   --autogen-args  Arguments to pass to autogen
   --distdir       Move the tarball(s) to this directory when done
   --dirtyok       Ok if the source tree is dirty
+  --verok         Ignore result of autotools version checking
   --no-git-update Skip "git pull" part, assume local repo is updated already
 EOF
             exit 1
